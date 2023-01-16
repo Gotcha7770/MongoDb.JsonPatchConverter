@@ -24,8 +24,7 @@ namespace MongoDb.JsonPatchConverter
         private static readonly Type OperationUpdateDefinitionType;
         private static readonly Type GenericStringFieldDefinition;
 
-        private readonly MapRegistry _mapRegistry;
-        
+        private readonly IMapRegistry _mapRegistry;
 
         static JsonPatchConverter()
         {
@@ -33,7 +32,7 @@ namespace MongoDb.JsonPatchConverter
             GenericStringFieldDefinition = typeof(StringFieldDefinition<int, int>).GetGenericTypeDefinition();
         }
 
-        public JsonPatchConverter(MapRegistry mapRegistry)
+        public JsonPatchConverter(IMapRegistry mapRegistry)
         {
             _mapRegistry = mapRegistry;
         }
@@ -73,7 +72,6 @@ namespace MongoDb.JsonPatchConverter
                     case OperationType.Replace:
                         HandleReplace(op, matched, path, result);
                         break;
-
                 }
             }
 
@@ -171,8 +169,6 @@ namespace MongoDb.JsonPatchConverter
             return value.IndexOfAny(BadSymbols) >= 0;
         }
 
-      
-
         private static UpdateDefinition<TOut> ConstructTypedSet<TOut>(string path, MapDescription map, object value)
         {
             // TODO add caching
@@ -184,7 +180,5 @@ namespace MongoDb.JsonPatchConverter
 
             return (UpdateDefinition<TOut>)updateDefinition;
         }
-
-      
     }
 }

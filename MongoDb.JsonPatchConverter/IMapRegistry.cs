@@ -7,5 +7,6 @@ namespace MongoDb.JsonPatchConverter
     {
         void MapType<T>() where T : class;
         IEnumerable<MapDescription> GetMap(Type t);
+        IEnumerable<MapDescription> GetMap<T>();
     }
 }

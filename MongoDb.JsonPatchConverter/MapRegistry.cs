@@ -8,11 +8,17 @@ namespace MongoDb.JsonPatchConverter
 {
     public class MapRegistry : IMapRegistry
     {
-        private readonly ConcurrentDictionary<Type, MapDescription[]> _dictionary;
+        private readonly Func<string, Regex> _regexFactory;
         private const string StringMappingNotAllowed = "String mapping is not allowed";
+        private readonly ConcurrentDictionary<Type, MapDescription[]> _dictionary;
 
-        public MapRegistry()
+        public static readonly Func<string, Regex> DefaultRegexFactory = s => new Regex($"^{s}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        public MapRegistry() : this(DefaultRegexFactory) { }
+
+        public MapRegistry(Func<string, Regex> regexFactory)
         {
+            _regexFactory = regexFactory;
             _dictionary = new ConcurrentDictionary<Type, MapDescription[]>();
         }
 
@@ -23,18 +29,17 @@ namespace MongoDb.JsonPatchConverter
             {
                 throw new InvalidOperationException(StringMappingNotAllowed);
             }
-            var valueFactory =
-                new Func<Type, MapDescription[]>(
-                    a => a.GetProperties()
-                        .SelectMany(_ => CreateTypeMappings(null, false, _.Name, _.PropertyType, new string[] { }))
-                        .ToArray());
-            _dictionary.AddOrUpdate(type, valueFactory, (a, b) => b);
+
+            MapDescription[] ValueFactory(Type t) => t.GetProperties()
+                    .SelectMany(_ => CreateTypeMappings(null, false, _.Name, _.PropertyType))
+                    .ToArray();
+
+            _dictionary.AddOrUpdate(type, ValueFactory, (a, b) => b);
         }
 
         public IEnumerable<MapDescription> GetMap(Type t)
         {
-            MapDescription[] map;
-            if (false == _dictionary.TryGetValue(t, out map))
+            if (false == _dictionary.TryGetValue(t, out var map))
             {
                 yield break;
             }
@@ -44,35 +49,26 @@ namespace MongoDb.JsonPatchConverter
             }
         }
 
-        private static IEnumerable<MapDescription> CreateTypeMappings(string previosRoot, bool isIndexer, string name, Type t, string[] arraySegments)
+        public IEnumerable<MapDescription> GetMap<T>() => GetMap(typeof(T));
+
+        private static IEnumerable<MapDescription> CreateTypeMappings(string path, bool isIndexer, string name, Type type)
         {
-            var root = string.IsNullOrEmpty(name) ? previosRoot : $"{previosRoot}/{name}";
-            var lst = new List<MapDescription>();
-            if (false == string.IsNullOrEmpty(root))
-            {
-                lst.Add(new MapDescription(new Regex($"^{root}$", RegexOptions.Compiled | RegexOptions.CultureInvariant), isIndexer, t));
-            }
-            if (t.IsValueType)
+            path = string.IsNullOrEmpty(name) ? path : $"{path}/{name}";
+            var lst = new List<MapDescription> { new MapDescription(DefaultRegexFactory(path), isIndexer, type) };
+            if (type.IsValueType || type == typeof(string))
             {
                 return lst;
             }
-            if (t == typeof(string))
+            if (type.IsArray)
             {
-                return lst;
-            }
-            if (t.IsArray)
-            {
-                var arrayRoot = root + "/[0-9]+";
-                var elementType = t.GetElementType();
-                var newSegments = new string[arraySegments.Length + 1];
-                arraySegments.CopyTo(newSegments, 0);
-                newSegments[newSegments.Length - 1] = root;
-                lst.AddRange(CreateTypeMappings(arrayRoot, true, string.Empty, elementType, arraySegments));
+                path += "/[0-9]+";
+                var elementType = type.GetElementType(); // 1 к 1
+                lst.AddRange(CreateTypeMappings(path, true, string.Empty, elementType));
             }
             else
             {
-                var props = t.GetProperties();
-                var mapped = props.SelectMany(_ => CreateTypeMappings(root, false, _.Name, _.PropertyType, arraySegments));
+                var props = type.GetProperties(); // 1 ко многим
+                var mapped = props.SelectMany(_ => CreateTypeMappings(path, false, _.Name, _.PropertyType));
                 lst.AddRange(mapped);
             }
 

@@ -11,14 +11,15 @@ namespace MongoDb.JsonPatchConverter
             IsIndexer = isIndexer;
             Type = type;
         }
-        public Regex Regex { get; }
 
+        public Regex Regex { get; }
         public bool IsIndexer { get; }
         public Type Type { get; }
 
         public bool Equals(MapDescription other)
         {
-            return Regex.ToString() == other.Regex.ToString()
+            return other != null 
+                   && Regex.ToString() == other.Regex.ToString()
                    && IsIndexer == other.IsIndexer
                    && Type == other.Type;
         }
