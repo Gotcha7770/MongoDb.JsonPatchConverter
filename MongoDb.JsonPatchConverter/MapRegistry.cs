@@ -30,9 +30,16 @@ namespace MongoDb.JsonPatchConverter
                 throw new InvalidOperationException(StringMappingNotAllowed);
             }
 
-            MapDescription[] ValueFactory(Type t) => t.GetProperties()
-                    .SelectMany(_ => CreateTypeMappings(null, false, _.Name, _.PropertyType))
-                    .ToArray();
+            MapType(type);
+        }
+
+        private void MapType(Type type)
+        {
+            MapDescription[] ValueFactory(Type t) => Node.For(t)
+                .GetNodes()
+                .Expand(x => x.GetNodes())
+                .Select(x => ToMapDescription(x, _regexFactory))
+                .ToArray();
 
             _dictionary.AddOrUpdate(type, ValueFactory, (a, b) => b);
         }
@@ -43,36 +50,30 @@ namespace MongoDb.JsonPatchConverter
             {
                 yield break;
             }
-            foreach (var mapDescription in map)
+            foreach (var mapDescription in map) //???
             {
-                yield return new MapDescription(mapDescription.Regex, mapDescription.IsIndexer, mapDescription.Type);
+                yield return new MapDescription(mapDescription.Regex, mapDescription.PathType, mapDescription.Type);
             }
         }
 
         public IEnumerable<MapDescription> GetMap<T>() => GetMap(typeof(T));
 
-        private static IEnumerable<MapDescription> CreateTypeMappings(string path, bool isIndexer, string name, Type type)
+        private static MapDescription ToMapDescription(Node node, Func<string, Regex> regexFactory)
         {
-            path = string.IsNullOrEmpty(name) ? path : $"{path}/{name}";
-            var lst = new List<MapDescription> { new MapDescription(DefaultRegexFactory(path), isIndexer, type) };
-            if (type.IsValueType || type == typeof(string))
-            {
-                return lst;
-            }
-            if (type.IsArray)
-            {
-                path += "/[0-9]+";
-                var elementType = type.GetElementType(); // 1 к 1
-                lst.AddRange(CreateTypeMappings(path, true, string.Empty, elementType));
-            }
-            else
-            {
-                var props = type.GetProperties(); // 1 ко многим
-                var mapped = props.SelectMany(_ => CreateTypeMappings(path, false, _.Name, _.PropertyType));
-                lst.AddRange(mapped);
-            }
+            return new MapDescription(regexFactory(node.Path), GetPathType(node), node.Type);
+        }
 
-            return lst;
+        private static PathType GetPathType(Node node)
+        {
+            switch (node)
+            {
+                case ArrayEndNode _:
+                    return PathType.EndOfArray;
+                case ArrayIndexerNode _:
+                    return PathType.Indexer;
+                default:
+                    return PathType.Field;
+            }
         }
     }
 }

@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Linq;
+using FluentAssertions;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.JsonPatch.Operations;
 using MongoDb.JsonPatchConverter.Tests.TestClasses;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
+using static FluentAssertions.FluentActions;
 
 namespace MongoDb.JsonPatchConverter.Tests;
 
@@ -15,7 +18,6 @@ public class JsonConverterTests
     public void RegistersMapWithoutErrors()
     {
         Helper.GetConverter();
-        Assert.True(true);
     }
 
     [Fact]
@@ -23,7 +25,8 @@ public class JsonConverterTests
     public void ThrowsIfModelsNotIntersect()
     {
         var converter = Helper.GetConverter();
-        Assert.Throws<InvalidOperationException>(()=>converter.Convert<Fruit, Dog>(new JsonPatchDocument<Dog>()));
+        Invoking(() => converter.Convert<Fruit, Dog>(new JsonPatchDocument<Dog>()))
+            .Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -101,8 +104,8 @@ public class JsonConverterTests
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         Assert.False(result.HasErrors);
-        Assert.True(result.Filters.Count(_=> Helper.RenderToString(_) == filter) == 1);
-        Assert.True(result.Updates.Count(_=> Helper.RenderToString(_) == update) == 1);
+        Assert.True(result.Filters.Count(x => Helper.RenderToString(x) == filter) == 1);
+        Assert.True(result.Updates.Count(x => Helper.RenderToString(x) == update) == 1);
     }
 
     [Theory]
@@ -122,9 +125,9 @@ public class JsonConverterTests
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         Assert.True(result.HasErrors);
-        Assert.False(result.Updates.Any());
-        Assert.False(result.Filters.Any());
-        Assert.True(result.Errors.Count(_ => _.OperationErrorType == OperationErrorType.NotSupported) == 1);
+        Assert.Empty(result.Updates);
+        Assert.Empty(result.Filters);
+        Assert.True(result.Errors.Count(x => x.OperationErrorType == OperationErrorType.NotSupported) == 1);
     }
 
     [Theory]
@@ -147,8 +150,8 @@ public class JsonConverterTests
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         Assert.False(result.HasErrors);
-        Assert.True(result.Filters.Count(_ => Helper.RenderToString(_) == filter) == 1);
-        Assert.True(result.Updates.Count(_ => Helper.RenderToString(_) == update) == 1);
+        Assert.True(result.Filters.Count(x => Helper.RenderToString(x) == filter) == 1);
+        Assert.True(result.Updates.Count(x => Helper.RenderToString(x) == update) == 1);
     }
 
         
@@ -169,7 +172,7 @@ public class JsonConverterTests
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         Assert.True(result.HasErrors);
-        Assert.True(result.Errors.Count(_=>_.OperationErrorType == OperationErrorType.TypeError) == 1);
+        Assert.True(result.Errors.Count(x => x.OperationErrorType == OperationErrorType.TypeError) == 1);
         Assert.False(result.Filters.Any());
         Assert.False(result.Updates.Any());
     }
@@ -213,11 +216,10 @@ public class JsonConverterTests
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         Assert.True(result.HasErrors);
-        Assert.True(result.Errors.Count(_=>_.OperationErrorType == OperationErrorType.PathNotValid) == 1);
+        Assert.True(result.Errors.Count(x => x.OperationErrorType == OperationErrorType.PathNotValid) == 1);
         Assert.False(result.Filters.Any());
         Assert.False(result.Updates.Any());
     }
-
 
     [Theory]
     [Trait("Category", "Add")]
@@ -236,14 +238,14 @@ public class JsonConverterTests
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         Assert.False(result.HasErrors);
-        Assert.True(result.Filters.Count(_=> Helper.RenderToString(_) == filter) == 1);
-        Assert.True(result.Updates.Count(_ => Helper.RenderToString(_) == update) == 1);
+        Assert.True(result.Filters.Count(x => Helper.RenderToString(x) == filter) == 1);
+        Assert.True(result.Updates.Count(x => Helper.RenderToString(x) == update) == 1);
     }
 
     [Theory]
     [Trait("Category", "Add")]
-    [InlineData("/Dogs/-", "{ \"Name\": \"Mailo\", \"Age\": 5 }", "")]
-    public void AddNewElementToArray(string path, string jObject, string update)
+    [InlineData("/Dogs/-", "{ \"Name\": \"Mailo\", \"Age\": 5 }", "{ \"Dogs\" : { \"$exists\" : true } }", "{ \"$push\" : { \"Dogs\" : { \"Name\" : \"Mailo\", \"Age\" : 5, \"FavoriteFood\" : null, \"Legs\" : null } } }")]
+    public void AddNewElementToArray(string path, string jObject, string filter, string update)
     {
         var converter = Helper.GetConverter();
         var doc = new JsonPatchDocument<UserEntity>();
@@ -251,8 +253,15 @@ public class JsonConverterTests
         {
             op = "add",
             path = path,
-            value = jObject
+            value = JsonConvert.DeserializeObject<Dog>(jObject)
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
+        result.HasErrors.Should().BeFalse();
+        result.Filters.Select(Helper.RenderToString)
+            .Should()
+            .BeEquivalentTo(filter);
+        result.Updates.Select(Helper.RenderToString)
+            .Should()
+            .BeEquivalentTo(update);
     }
 }

@@ -106,7 +106,7 @@ namespace MongoDb.JsonPatchConverter
             string path,
             ConversionResult<TOut> conversion)
         {
-            if (map.IsIndexer)
+            if (map.PathType == PathType.Indexer)
             {
                 conversion.Errors.Add(new OperationError(NotSupportedByMongo, OperationErrorType.NotSupported, op));
                 return;
@@ -123,7 +123,7 @@ namespace MongoDb.JsonPatchConverter
             ConversionResult<TOut> conversion)
         {
             var lastDot = path.LastIndexOf(".", StringComparison.InvariantCulture);
-            if (lastDot >0)
+            if (lastDot > 0)
             {
                 // target location may not exists, however, only last property may not exists, but all previous should
                 var existance = path.Substring(0, lastDot);
@@ -140,7 +140,9 @@ namespace MongoDb.JsonPatchConverter
                 conversion.Errors.Add(new OperationError(string.Format(ConversionErrorFormat,path), OperationErrorType.TypeError, operation));
                 return;
             }
-            var update = ConstructTypedSet<TOut>(path, map, val);
+            var update = map.PathType == PathType.EndOfArray 
+                ? ConstructTypedPush<TOut>(path, map, val)
+                : ConstructTypedSet<TOut>(path, map, val);
             conversion.Updates.Add(update);
         }
 
@@ -169,13 +171,24 @@ namespace MongoDb.JsonPatchConverter
             return value.IndexOfAny(BadSymbols) >= 0;
         }
 
+        private static UpdateDefinition<TOut> ConstructTypedPush<TOut>(string path, MapDescription map, object value)
+        {
+            int index = path.LastIndexOf(".", StringComparison.InvariantCulture);
+            path = path.Substring(0, index);
+            var genericUpdate = OperationUpdateDefinitionType.MakeGenericType(typeof(TOut), map.Type);
+            var genericField = GenericStringFieldDefinition.MakeGenericType(typeof(TOut), map.Type);
+            var fieldDefinition = Activator.CreateInstance(genericField, path, null);
+            var updateDefinition = Activator.CreateInstance(genericUpdate, "$push", fieldDefinition, value);
+
+            return (UpdateDefinition<TOut>)updateDefinition;
+        }
+
         private static UpdateDefinition<TOut> ConstructTypedSet<TOut>(string path, MapDescription map, object value)
         {
             // TODO add caching
             var genericUpdate = OperationUpdateDefinitionType.MakeGenericType(typeof(TOut), map.Type);
             var genericField = GenericStringFieldDefinition.MakeGenericType(typeof(TOut), map.Type);
             var fieldDefinition = Activator.CreateInstance(genericField, path, null);
-            //public OperatorUpdateDefinition(string operatorName, FieldDefinition<TDocument, TField> field, TField value)
             var updateDefinition = Activator.CreateInstance(genericUpdate, "$set", fieldDefinition, value);
 
             return (UpdateDefinition<TOut>)updateDefinition;

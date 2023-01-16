@@ -3,30 +3,37 @@ using System.Text.RegularExpressions;
 
 namespace MongoDb.JsonPatchConverter
 {
+    public enum PathType
+    {
+        Field,
+        EndOfArray,
+        Indexer
+    }
+
     public class MapDescription : IEquatable<MapDescription>
     {
-        public MapDescription(Regex regex, bool isIndexer, Type type)
+        public MapDescription(Regex regex, PathType pathType, Type type)
         {
             Regex = regex;
-            IsIndexer = isIndexer;
+            PathType = pathType;
             Type = type;
         }
 
         public Regex Regex { get; }
-        public bool IsIndexer { get; }
+        public PathType PathType { get; }
         public Type Type { get; }
 
         public bool Equals(MapDescription other)
         {
             return other != null 
                    && Regex.ToString() == other.Regex.ToString()
-                   && IsIndexer == other.IsIndexer
+                   && PathType == other.PathType
                    && Type == other.Type;
         }
 
         public override int GetHashCode()
         {
-            return Regex.ToString().GetHashCode() ^ IsIndexer.GetHashCode() ^ Type.FullName.GetHashCode();
+            return Regex.ToString().GetHashCode() ^ PathType.GetHashCode() ^ Type.FullName.GetHashCode();
         }
     }
 }
