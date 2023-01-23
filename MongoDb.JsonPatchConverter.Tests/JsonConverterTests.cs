@@ -3,6 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.JsonPatch.Operations;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDb.JsonPatchConverter.Tests.TestClasses;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -244,16 +245,21 @@ public class JsonConverterTests
 
     [Theory]
     [Trait("Category", "Add")]
-    [InlineData("/Dogs/-", "{ \"Name\": \"Mailo\", \"Age\": 5 }", "{ \"Dogs\" : { \"$exists\" : true } }", "{ \"$push\" : { \"Dogs\" : { \"Name\" : \"Mailo\", \"Age\" : 5, \"FavoriteFood\" : null, \"Legs\" : null } } }")]
-    public void AddNewElementToArray(string path, string jObject, string filter, string update)
+    [InlineData("/Dogs/-", "{ \"name\": \"Mailo\", \"age\": 5 }", "{ \"dogs\" : { \"$exists\" : true } }", "{ \"$push\" : { \"dogs\" : { \"name\" : \"Mailo\", \"age\" : 5, \"favoriteFood\" : null, \"legs\" : null } } }")]
+    [InlineData("/dogs/-", "{ \"name\": \"Mailo\", \"age\": 5 }", "{ \"dogs\" : { \"$exists\" : true } }", "{ \"$push\" : { \"dogs\" : { \"name\" : \"Mailo\", \"age\" : 5, \"favoriteFood\" : null, \"legs\" : null } } }")]
+    public void AddNewElementToArray(string path, string value, string filter, string update)
     {
+        // use camelCase convention to serialize
+        var conventionPack = new ConventionPack { new CamelCaseElementNameConvention() };
+        ConventionRegistry.Register("camelCase", conventionPack, _ => true);
+        
         var converter = Helper.GetConverter();
         var doc = new JsonPatchDocument<UserEntity>();
         doc.Operations.Add(new Operation<UserEntity>
         {
             op = "add",
             path = path,
-            value = JsonConvert.DeserializeObject<Dog>(jObject)
+            value = JObject.Parse(value)
         });
         var result = converter.Convert<UserEntity, UserEntity>(doc);
         result.HasErrors.Should().BeFalse();
