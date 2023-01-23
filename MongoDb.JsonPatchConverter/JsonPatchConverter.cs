@@ -49,7 +49,7 @@ namespace MongoDb.JsonPatchConverter
             var result = new ConversionResult<TOut>();
             foreach (var op in document.Operations)
             {
-                var matched = interSection.FirstOrDefault(_ => _.Regex.IsMatch(op.path));
+                var matched = interSection.FirstOrDefault(x => x.Regex.IsMatch(op.path));
                 if (ContainsBadCharacters(op.path) || matched == null)
                 {
                     result.Errors.Add(new OperationError(string.Format(PathNotFoundFormat,op.op,op.path), OperationErrorType.PathNotValid, op));

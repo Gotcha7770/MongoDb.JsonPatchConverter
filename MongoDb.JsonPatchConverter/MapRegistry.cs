@@ -12,7 +12,7 @@ namespace MongoDb.JsonPatchConverter
         private const string StringMappingNotAllowed = "String mapping is not allowed";
         private readonly ConcurrentDictionary<Type, MapDescription[]> _dictionary;
 
-        public static readonly Func<string, Regex> DefaultRegexFactory = s => new Regex($"^{s}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        public static readonly Func<string, Regex> DefaultRegexFactory = s => new Regex($"^{s}$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         public MapRegistry() : this(DefaultRegexFactory) { }
 
