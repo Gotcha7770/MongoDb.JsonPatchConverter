@@ -18,21 +18,21 @@ namespace MongoDb.JsonPatchConverter.Tests
         public void ApplyReplaceArray(string path, object value, bool isArray)
         {
             var converter = Helper.GetConverter();
-            var doc = new JsonPatchDocument<UserEntity>();
-            BsonClassMap.RegisterClassMap<UserEntity>();
-            doc.Operations.Add(new Operation<UserEntity>
+            var doc = new JsonPatchDocument<User>();
+            BsonClassMap.RegisterClassMap<User>();
+            doc.Operations.Add(new Operation<User>
             {
                 from = string.Empty,
                 op = "replace",
                 path = path,
                 value = isArray ? JArray.Parse((string)value) : value
             });
-            var result = converter.Convert<UserEntity, UserEntity>(doc);
-            using (var coll = Helper.GetCollection<UserEntity>())
+            var result = converter.Convert<User, User>(doc);
+            using (var coll = Helper.GetCollection<User>())
             {
-                var filtered = Builders<UserEntity>.Filter.And(result.Filters);
-                var updates = Builders<UserEntity>.Update.Combine(result.Updates);
-                coll.Collection.InsertOne(new UserEntity { Id = Guid.NewGuid(), Dogs = new []
+                var filtered = Builders<User>.Filter.And(result.Filters);
+                var updates = Builders<User>.Update.Combine(result.Updates);
+                coll.Collection.InsertOne(new User { Id = Guid.NewGuid(), Dogs = new []
                 {
                     new Dog { Name = "Don"}
                 }});

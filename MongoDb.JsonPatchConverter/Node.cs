@@ -36,7 +36,7 @@ namespace MongoDb.JsonPatchConverter
 
         internal static IEnumerable<PropertyInfo> GetProperties(Type type)
         {
-            if (type.IsPrimitive || type == typeof(string))
+            if (type.SkipTypeProperties())
                 return Enumerable.Empty<PropertyInfo>();
             if (type.IsArray)
                 return type.GetElementType()?.GetProperties() ?? Enumerable.Empty<PropertyInfo>();

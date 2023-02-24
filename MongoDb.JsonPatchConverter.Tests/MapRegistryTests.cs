@@ -15,7 +15,7 @@ public class MapRegistryTests
     {
         IEnumerable<PropertyInfo> GetProperties(PropertyInfo propertyInfo) => Node.GetProperties(propertyInfo.PropertyType);
 
-        var properties = typeof(UserEntity).GetProperties()
+        var properties = typeof(User).GetProperties()
             .Expand(GetProperties)
             .Select(x => (x.Name, x.PropertyType));
 
@@ -38,7 +38,7 @@ public class MapRegistryTests
     [Fact]
     public void ExpandNodes()
     {
-        var nodes = Node.For<UserEntity>().GetNodes()
+        var nodes = Node.For<User>().GetNodes()
             .Expand(x => x.GetNodes());
 
         nodes.Should()
@@ -65,9 +65,9 @@ public class MapRegistryTests
     public void MapType()
     {
         var registry = new MapRegistry();
-        registry.MapType<UserEntity>();
+        registry.MapType<User>();
 
-        var mapDescriptions = registry.GetMap<UserEntity>();
+        var mapDescriptions = registry.GetMap<User>();
 
         mapDescriptions.Should()
             .BeEquivalentTo(new[]

@@ -96,14 +96,14 @@ public class JsonConverterTests
     public void RemoveOperationReturnsFilterToExistAndUnsetOperation(string path, string filter, string update)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "remove",
             path = path
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.False(result.HasErrors);
         Assert.True(result.Filters.Count(x => Helper.RenderToString(x) == filter) == 1);
         Assert.True(result.Updates.Count(x => Helper.RenderToString(x) == update) == 1);
@@ -117,14 +117,14 @@ public class JsonConverterTests
     public void RemoveByIndexReturnsNotSupportedError(string path)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "remove",
             path = path
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.True(result.HasErrors);
         Assert.Empty(result.Updates);
         Assert.Empty(result.Filters);
@@ -141,15 +141,15 @@ public class JsonConverterTests
     public void ReplaceOperationReturnsFilterToExistAndSetOperation(string path,object value, string filter, string update, bool isArray)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "replace",
             path = path,
             value = isArray ? JArray.Parse((string)value) : value
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.False(result.HasErrors);
         Assert.True(result.Filters.Count(x => Helper.RenderToString(x) == filter) == 1);
         Assert.True(result.Updates.Count(x => Helper.RenderToString(x) == update) == 1);
@@ -163,15 +163,15 @@ public class JsonConverterTests
     public void ReplaceOperationReturnsErrorsWhenTypeMismatch(string path, object value)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "replace",
             path = path,
             value = value
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.True(result.HasErrors);
         Assert.True(result.Errors.Count(x => x.OperationErrorType == OperationErrorType.TypeError) == 1);
         Assert.False(result.Filters.Any());
@@ -186,15 +186,15 @@ public class JsonConverterTests
     public void AddForRootPathReturnsNoFilter(string path, object value)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "add",
             path = path,
             value = value
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.False(result.HasErrors);
         Assert.False(result.Filters.Any());
         Assert.True(result.Updates.Any());
@@ -207,15 +207,15 @@ public class JsonConverterTests
     public void AddOnNotExistencePathOnModelReturnsError(string path, object value)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "add",
             path = path,
             value = value
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.True(result.HasErrors);
         Assert.True(result.Errors.Count(x => x.OperationErrorType == OperationErrorType.PathNotValid) == 1);
         Assert.False(result.Filters.Any());
@@ -229,15 +229,15 @@ public class JsonConverterTests
     public void AddOnArrayElementReturnsArrayShouldExists(string path, object value, string filter, string update)
     {
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             from = string.Empty,
             op = "add",
             path = path,
             value = value
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         Assert.False(result.HasErrors);
         Assert.True(result.Filters.Count(x => Helper.RenderToString(x) == filter) == 1);
         Assert.True(result.Updates.Count(x => Helper.RenderToString(x) == update) == 1);
@@ -254,14 +254,14 @@ public class JsonConverterTests
         ConventionRegistry.Register("camelCase", conventionPack, _ => true);
         
         var converter = Helper.GetConverter();
-        var doc = new JsonPatchDocument<UserEntity>();
-        doc.Operations.Add(new Operation<UserEntity>
+        var doc = new JsonPatchDocument<User>();
+        doc.Operations.Add(new Operation<User>
         {
             op = "add",
             path = path,
             value = JObject.Parse(value)
         });
-        var result = converter.Convert<UserEntity, UserEntity>(doc);
+        var result = converter.Convert<User, User>(doc);
         result.HasErrors.Should().BeFalse();
         result.Filters.Select(Helper.RenderToString)
             .Should()

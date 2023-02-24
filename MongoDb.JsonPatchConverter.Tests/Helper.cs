@@ -29,7 +29,7 @@ public static class Helper
     {
         var registry = new MapRegistry();
         registry.MapType<Dog>();
-        registry.MapType<UserEntity>();
+        registry.MapType<User>();
         registry.MapType<Cat>();
         registry.MapType<Fruit>();
         return new JsonPatchConverter(registry);
