@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <AssemblyTitle>MongoDb.JsonPatchConverter</AssemblyTitle>
-    <VersionPrefix>1.1.0</VersionPrefix>
+    <VersionPrefix>1.2.0</VersionPrefix>
     <Authors>&lt;Uladzimir Harabtsou&gt; hofvl0nley@gmail.com</Authors>
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>MongoDb.JsonPatchConverter</AssemblyName>
