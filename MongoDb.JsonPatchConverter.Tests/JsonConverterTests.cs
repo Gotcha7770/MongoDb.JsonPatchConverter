@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.JsonPatch.Operations;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDb.JsonPatchConverter.Tests.TestClasses;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using static FluentAssertions.FluentActions;

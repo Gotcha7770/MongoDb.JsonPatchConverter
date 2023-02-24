@@ -19,17 +19,18 @@ namespace MongoDb.JsonPatchConverter
         private static readonly char[] BadSymbols = {'$', '{', '}', '[', ']'};
         private const string PathNotFoundFormat = "Operation '{0}' points to path '{1}' , which is not found on models.";
         private const string FiledMismatchOnTypes = "Model {0} does not have any field, which exist in {1}.";
-        private const string OperationUpdateDefinitionTypeName = "MongoDB.Driver.OperatorUpdateDefinition`2";
+        private const string SetUpdateDefinitionTypeName = "MongoDB.Driver.OperatorUpdateDefinition`2";
+        private const string PushUpdateDefinitionTypeName = "MongoDB.Driver.PushUpdateDefinition`2";
 
-        private static readonly Type OperationUpdateDefinitionType;
-        private static readonly Type GenericStringFieldDefinition;
+        private static readonly Type SetUpdateDefinitionType;
+        private static readonly Type PushUpdateDefinitionType;
 
         private readonly IMapRegistry _mapRegistry;
 
         static JsonPatchConverter()
         {
-            OperationUpdateDefinitionType = typeof(UpdateDefinition<>).Assembly.GetType(OperationUpdateDefinitionTypeName, true);
-            GenericStringFieldDefinition = typeof(StringFieldDefinition<int, int>).GetGenericTypeDefinition();
+            SetUpdateDefinitionType = typeof(UpdateDefinition<>).Assembly.GetType(SetUpdateDefinitionTypeName, true);
+            PushUpdateDefinitionType = typeof(UpdateDefinition<>).Assembly.GetType(PushUpdateDefinitionTypeName, true);
         }
 
         public JsonPatchConverter(IMapRegistry mapRegistry)
@@ -175,10 +176,14 @@ namespace MongoDb.JsonPatchConverter
         {
             int index = path.LastIndexOf(".", StringComparison.InvariantCulture);
             path = path.Substring(0, index);
-            var genericUpdate = OperationUpdateDefinitionType.MakeGenericType(typeof(TOut), map.Type);
-            var genericField = GenericStringFieldDefinition.MakeGenericType(typeof(TOut), map.Type);
-            var fieldDefinition = Activator.CreateInstance(genericField, path, null);
-            var updateDefinition = Activator.CreateInstance(genericUpdate, "$push", fieldDefinition, value);
+            
+            var genericUpdate = PushUpdateDefinitionType.MakeGenericType(typeof(TOut), map.Type);
+            var genericField = typeof(StringFieldDefinition<>).GetGenericTypeDefinition().MakeGenericType(typeof(TOut));
+
+            var values = Array.CreateInstance(map.Type, 1);
+            values.SetValue(value, 0);
+            var fieldDefinition = Activator.CreateInstance(genericField, path);
+            var updateDefinition = Activator.CreateInstance(genericUpdate, fieldDefinition, values, null, null, null);
 
             return (UpdateDefinition<TOut>)updateDefinition;
         }
@@ -186,8 +191,8 @@ namespace MongoDb.JsonPatchConverter
         private static UpdateDefinition<TOut> ConstructTypedSet<TOut>(string path, MapDescription map, object value)
         {
             // TODO add caching
-            var genericUpdate = OperationUpdateDefinitionType.MakeGenericType(typeof(TOut), map.Type);
-            var genericField = GenericStringFieldDefinition.MakeGenericType(typeof(TOut), map.Type);
+            var genericUpdate = SetUpdateDefinitionType.MakeGenericType(typeof(TOut), map.Type);
+            var genericField = typeof(StringFieldDefinition<,>).GetGenericTypeDefinition().MakeGenericType(typeof(TOut), map.Type);
             var fieldDefinition = Activator.CreateInstance(genericField, path, null);
             var updateDefinition = Activator.CreateInstance(genericUpdate, "$set", fieldDefinition, value);
 
