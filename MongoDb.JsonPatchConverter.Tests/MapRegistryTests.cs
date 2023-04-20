@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Aqua.Dynamic;
 using FluentAssertions;
 using MongoDb.JsonPatchConverter.Tests.TestClasses;
 using Xunit;
@@ -87,5 +88,32 @@ public class MapRegistryTests
                 new MapDescription(MapRegistry.DefaultRegexFactory("/Dogs/[0-9]+/Legs/[0-9]+"), PathType.Indexer, typeof(Leg)),
                 new MapDescription(MapRegistry.DefaultRegexFactory("/Dogs/[0-9]+/Legs/[0-9]+/IsOk"), PathType.Field, typeof(bool)),
             });
+    }
+
+    [Fact]
+    public void MapToDynamicObject()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "John",
+            TotalPets = 1,
+            Dogs = new[]
+            {
+                new Dog
+                {
+                    Name = "Kuchubey",
+                    Legs = new[]
+                    {
+                        new Leg(),
+                        new Leg(),
+                        new Leg(),
+                        new Leg()
+                    }
+                }
+            }
+        };
+        
+        var dynamicObject = new DynamicObjectMapper().MapObject(user);
     }
 }
